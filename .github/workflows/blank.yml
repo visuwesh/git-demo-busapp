@@ -1,0 +1,76 @@
+name: CI Workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Run the job and capture logs
+      run: |
+        echo "Running the job"
+        echo "Example log line" > logs.txt
+        # Run your build/test commands and append logs to logs.txt
+        # For example: npm install && npm test >> logs.txt 2>&1
+
+    - name: Upload logs
+      uses: actions/upload-artifact@v2
+      with:
+        name: logs
+        path: logs.txt
+
+    - name: Send email with log link
+      uses: actions/github-script@v4
+      with:
+        script: |
+          const artifactName = 'logs';
+          const runId = process.env.GITHUB_RUN_ID;
+          const repo = process.env.GITHUB_REPOSITORY;
+          const jobStatus = process.env.JOB_STATUS;
+          const workflow = process.env.GITHUB_WORKFLOW;
+
+          // Construct the link to the artifact
+          const logsUrl = `https://github.com/${repo}/suites/${runId}/artifacts/${artifactName}`;
+
+          const emailBody = `${jobStatus} job in workflow ${workflow} of ${repo} is ${jobStatus}. You can find the logs [here](${logsUrl}).`;
+          
+          // Function to send email (you need to implement this based on your email provider)
+          sendEmail({
+            to: 'your-email@example.com',
+            subject: `${repo} ${jobStatus}`,
+            body: emailBody,
+          });
+
+          function sendEmail({ to, subject, body }) {
+            // Example implementation using SendGrid (you can use any email service)
+            const sgMail = require('@sendgrid/mail');
+            sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+            const msg = {
+              to,
+              from: 'noreply@example.com',
+              subject,
+              text: body,
+            };
+            sgMail.send(msg).then(() => {
+              console.log('Email sent successfully');
+            }).catch(error => {
+              console.error('Error sending email', error);
+            });
+          }
+
+    env:
+      JOB_STATUS: ${{ job.status }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      GITHUB_WORKFLOW: ${{ github.workflow }}
+      GITHUB_RUN_ID: ${{ github.run_id }}
+      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
