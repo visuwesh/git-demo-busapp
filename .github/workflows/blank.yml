@@ -28,5 +28,19 @@ jobs:
       with:
         name: logs
         path: logs.txt
+    - name: Send email with log link
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.example.com
+        server_port: 587
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: ${{ github.repository }} ${{ job.status }} Job Log
+        body: >
+          The ${{ github.job }} job in the ${{ github.workflow }} workflow of the ${{ github.repository }} repository
+          has completed with status: ${{ job.status }}.
+
+          You can download the logs from [this link](https://github.com/${{ github.repository }}/suites/${{ github.run_id }}/artifacts/${{ steps.upload-logs.outputs.artifact_id }}).
+        to: visuwesh@gmail.com
 
     
